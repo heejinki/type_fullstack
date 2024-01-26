@@ -72,3 +72,14 @@ export interface IRpc {
   readPreview: (req: ReadPreviewRequest) => ReadPreviewResponse;
   updateProfile: (req: UpdateProfileRequest) => UpdateProfileResponse;
 }
+
+type AnyFunction = (...args: any) => any;
+type PromiseReturn<F extends AnyFunction> = F extends (
+  ...args: infer A
+) => infer R
+  ? (...args: A) => Promise<R>
+  : never;
+
+export type PromiseRpc = {
+  [k in keyof IRpc]: PromiseReturn<IRpc[k]>;
+};
