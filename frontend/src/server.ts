@@ -1,9 +1,19 @@
-import { Post, PromiseRpc, User, Comment } from "./rpcgen";
+import {
+  Comment,
+  IRpc,
+  Post,
+  PromiseRpc,
+  RpcFunctionRequest,
+  RpcFunctionResponse,
+  User,
+} from "./rpcgen";
 
-const server: PromiseRpc = {
-  //서버 변수에 PromiseRPC의 기본 틀을 잡는다.
-  createPost: async (req) => {
-    //데이터 추가
+const server: {
+  [K in keyof IRpc]: (
+    arg: RpcFunctionRequest<K>
+  ) => Promise<RpcFunctionResponse<K>>;
+} = {
+  createPost: (req) => {
     posts.push({
       body: req.body,
       comments: [],
@@ -11,10 +21,9 @@ const server: PromiseRpc = {
       author: user,
       timestamp: Date.now(),
     });
-    return {}; //그냥 값을 반환하는것 처럼 보여도 외부적으fh Promise가 붙음
+    return Promise.resolve({});
   },
-  createComment: async (req) => {
-    //댓글추가
+  createComment: (req) => {
     const post = findPost(req.postId);
     post.comments.push({
       id: post.comments.length,
@@ -22,19 +31,20 @@ const server: PromiseRpc = {
       body: req.body,
       timestamp: Date.now(),
     });
-    return {};
+    return Promise.resolve({});
   },
-  readPost: async (req) => {
-    return { post: findPost(req.postId) };
+  readPost: (req) => {
+    return Promise.resolve({ post: findPost(req.postId) });
   },
-  readRandomPost: async () => {
-    return { post: findPost(Math.floor(Math.random() * posts.length)) };
+  readRandomPost: (req) => {
+    return Promise.resolve({
+      post: findPost(Math.floor(Math.random() * posts.length)),
+    });
   },
-  readProfile: async () => {
-    return { user };
+  readProfile: (req) => {
+    return Promise.resolve({ user });
   },
-  readPreview: async () => {
-    //미리보기 구현
+  readPreview: (req) => {
     const comments: Comment[] = [];
     posts.forEach((p) => {
       p.comments.forEach((c) => {
@@ -44,20 +54,22 @@ const server: PromiseRpc = {
       });
     });
 
-    return { posts: posts.filter((p) => p.author.id === user.id), comments };
+    return Promise.resolve({
+      posts: posts.filter((p) => p.author.id === user.id),
+      comments,
+    });
   },
-  updateProfile: async (req) => {
+  updateProfile: (req) => {
     user.name = req.name;
-    return {};
+    return Promise.resolve({});
   },
 };
 
 export default server;
 
-const user: User = { id: 3, name: "내 이름" }; //유저라는 정보로 로그인이된 상태.
+const user: User = { id: 3, name: "내 이름" };
 const user2: User = { id: 4, name: "다른 유저" };
 const posts: Post[] = [
-  //더미데이터
   {
     id: 0,
     body: "내용1",
@@ -82,8 +94,7 @@ const posts: Post[] = [
 ];
 
 function findPost(postId: number): Post {
-  //아이디로 글을 찾고 없으면 예외를 던지는 함수.
-  const post = posts.find((p) => p.id === postId); //그냥 find만 쓰면 undefined 에 대한 타입처리를 항상 해줘야되어 함수로 따로 뺴줌.
+  const post = posts.find((p) => p.id === postId);
   if (!post) {
     throw Error("no post");
   }
